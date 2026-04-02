@@ -1,0 +1,8 @@
+[build]
+entrypoint = "cmd/api/main.go"
+cmd = "go build -o ./tmp/main.exe cmd/api/main.go"
+bin = "tmp/main.exe"
+full_bin = "tmp/main.exe"
+
+include_ext = ["go"]
+exclude_dir = ["tmp", "vendor", "node_modules"]

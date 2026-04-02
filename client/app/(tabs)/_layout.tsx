@@ -5,7 +5,9 @@ import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-
+import Ionicons from "@expo/vector-icons/Ionicons";
+import Feather from "@expo/vector-icons/Feather";
+import AntDesign from "@expo/vector-icons/AntDesign";
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
@@ -22,7 +24,7 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <Feather name="home" size={24} color="white" />
           ),
         }}
       />
@@ -31,7 +33,7 @@ export default function TabLayout() {
         options={{
           title: "Network",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.2.fill" color={color} />
+            <Ionicons name="people-circle-sharp" size={24} color="white" />
           ),
         }}
       />
@@ -40,11 +42,7 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color }) => (
-            <IconSymbol
-              size={28}
-              name="person.crop.circle.fill"
-              color={color}
-            />
+            <AntDesign name="profile" size={24} color="white" />
           ),
         }}
       />
