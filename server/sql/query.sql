@@ -90,3 +90,19 @@ LEFT JOIN profile_contacts pc ON pc.profile_id = p.id
 WHERE q.token = $1
 AND q.is_active = TRUE
 AND (q.expires_at IS NULL OR q.expires_at > NOW());
+
+-- name: CreateScanLog :exec
+INSERT INTO scan_logs (
+    profile_id, device, location, ip_address
+)
+VALUES ($1, $2, $3, $4);
+
+-- name: GetScanLogsByProfile :many
+SELECT * FROM scan_logs
+WHERE profile_id = $1
+ORDER BY scanned_at DESC
+LIMIT $2;
+
+-- name: GetScanCount :one
+SELECT COUNT(*) FROM scan_logs
+WHERE profile_id = $1;
