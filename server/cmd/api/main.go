@@ -7,6 +7,7 @@ import (
 	"Frank2006x/WeMe/internal/router"
 	"context"
 
+	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/joho/godotenv"
@@ -16,6 +17,7 @@ func main(){
 	_ = godotenv.Load()
 	app:=fiber.New()
 	app.Use(logger.New())
+	app.Use(cors.New())
 	dbPool:=db.NewPool()
 	dbPool.Ping(context.Background())
 	defer dbPool.Close()
@@ -23,8 +25,9 @@ func main(){
 	queries:=dbgen.New(dbPool)
 	Handler := handler.NewHandler(queries)
 	router.SetupAuthRoutes(app,Handler)
-	app.Get("/", func(c fiber.Ctx) error {
-		return c.SendString("Hello, World!")
+	app.Get("/:name", func(c fiber.Ctx) error {
+		name := c.Params("name")
+		return c.SendString("Hello, " + name + "!")
 	})
 	app.Listen(":3001")
 }

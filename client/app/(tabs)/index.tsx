@@ -12,17 +12,7 @@ import { Link } from "expo-router";
 export default function HomeScreen() {
   const [message, setMessage] = useState("Loading...");
 
-  useEffect(() => {
-    api
-      .get("/hello/WeMe")
-      .then((response) => {
-        setMessage(response.data);
-      })
-      .catch((error) => {
-        console.error("API Error:", error);
-        setMessage("Error fetching data");
-      });
-  }, []);
+  
 
   return (
     <ParallaxScrollView
