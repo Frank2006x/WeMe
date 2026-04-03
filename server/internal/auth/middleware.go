@@ -8,7 +8,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func JWTMiddleware(c fiber.Ctx) error {
+func AuthMiddleware(c fiber.Ctx) error {
 	authHeader := c.Get("Authorization")
 
 	if authHeader == "" {
