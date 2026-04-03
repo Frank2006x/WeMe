@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { StyleSheet, TouchableOpacity, Text } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+} from "react-native";
+import { Buffer } from "buffer";
 import { useFocusEffect, useRouter } from "expo-router";
 import api from "@/constants/api";
 import { useAuth } from "@/context/auth-context";
@@ -15,15 +22,22 @@ import { Fonts } from "@/constants/theme";
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [qrImageUri, setQrImageUri] = useState("");
+  const [generatingQr, setGeneratingQr] = useState(false);
+  const [qrError, setQrError] = useState("");
   const router = useRouter();
   const { logout } = useAuth();
+
+  const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+    return Buffer.from(buffer).toString("base64");
+  };
 
   const fetchProfile = async () => {
     setLoading(true);
     try {
       const { data } = await api.get("/profiles/me");
       setProfile(data);
-    } catch (error) {
+    } catch {
       setProfile(null);
     } finally {
       setLoading(false);
@@ -38,6 +52,24 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  const handleGenerateQr = async () => {
+    setGeneratingQr(true);
+    setQrError("");
+
+    try {
+      const response = await api.post("/qr/generate", null, {
+        responseType: "arraybuffer",
+      });
+
+      const base64 = arrayBufferToBase64(response.data as ArrayBuffer);
+      setQrImageUri(`data:image/png;base64,${base64}`);
+    } catch {
+      setQrError("Failed to generate QR code. Please try again.");
+    } finally {
+      setGeneratingQr(false);
+    }
   };
 
   return (
@@ -78,6 +110,28 @@ export default function ProfileScreen() {
         <Text style={styles.buttonText}>Logout</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={[styles.button, styles.qrButton]}
+        onPress={handleGenerateQr}
+        disabled={generatingQr}
+      >
+        <Text style={styles.buttonText}>
+          {generatingQr ? "Generating..." : "Generate My QR"}
+        </Text>
+      </TouchableOpacity>
+
+      {generatingQr && <ActivityIndicator size="large" style={styles.loader} />}
+
+      {!!qrError && <ThemedText style={styles.errorText}>{qrError}</ThemedText>}
+
+      {!!qrImageUri && (
+        <ThemedView style={styles.qrCard}>
+          <ThemedText type="subtitle">My Share QR</ThemedText>
+          <Image source={{ uri: qrImageUri }} style={styles.qrImage} />
+          <ThemedText>Let others scan this code from their Scan tab.</ThemedText>
+        </ThemedView>
+      )}
+
       <Collapsible title="Profile features">
         <ThemedText>
           This tab is for profile management. You can edit your information,
@@ -114,9 +168,34 @@ const styles = StyleSheet.create({
     backgroundColor: "#FF3B30",
     marginBottom: 0,
   },
+  qrButton: {
+    backgroundColor: "#34C759",
+    marginTop: 16,
+    marginBottom: 8,
+  },
   buttonText: {
     color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "600",
+  },
+  loader: {
+    marginTop: 8,
+  },
+  errorText: {
+    color: "#D32F2F",
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  qrCard: {
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    gap: 8,
+  },
+  qrImage: {
+    width: 220,
+    height: 220,
+    borderRadius: 10,
   },
 });

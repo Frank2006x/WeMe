@@ -2,7 +2,6 @@ import { Tabs } from "expo-router";
 import React from "react";
 
 import { HapticTab } from "@/components/haptic-tab";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -29,11 +28,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="network"
+        name="scan"
         options={{
-          title: "Network",
+          title: "Scan",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="people-circle-sharp" size={24} color="white" />
+            <Ionicons name="scan" size={24} color="white" />
           ),
         }}
       />
@@ -44,6 +43,12 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <AntDesign name="profile" size={24} color="white" />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="edit-profile"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

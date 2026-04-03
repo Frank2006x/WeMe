@@ -6,9 +6,8 @@ import (
 	"Frank2006x/WeMe/internal/handler"
 	"Frank2006x/WeMe/internal/router"
 	"context"
-
-	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/joho/godotenv"
 )
@@ -26,8 +25,8 @@ func main(){
 
 	router.SetupAuthRoutes(app,Handler)
 	router.SetupProfileRoutes(app,Handler)
+	router.SetupQRRoutes(app,Handler)
 
-	
 	app.Get("/:name", func(c fiber.Ctx) error {
 		name := c.Params("name")
 		return c.SendString("Hello, " + name + "!")

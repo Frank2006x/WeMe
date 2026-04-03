@@ -12,8 +12,6 @@ import { Link } from "expo-router";
 export default function HomeScreen() {
   const [message, setMessage] = useState("Loading...");
 
-  
-
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
@@ -72,7 +70,7 @@ export default function HomeScreen() {
           </Link.Menu>
         </Link>
 
-        <ThemedText>{`Tap the Network tab to connect with others.`}</ThemedText>
+        <ThemedText>{`Tap the Scan tab to scan a WeMe QR code.`}</ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
