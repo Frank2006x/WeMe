@@ -1,5 +1,3 @@
--- query.sql
-
 -- name: CreateUser :one
 INSERT INTO users (email, password)
 VALUES ($1, $2)
@@ -14,28 +12,26 @@ SELECT * FROM users
 WHERE id = $1;
 
 -- name: CreateProfile :one
-INSERT INTO profiles (user_id, name, bio, is_default)
-VALUES ($1, $2, $3,$4)
+INSERT INTO profiles (user_id, name, bio, avatar_url)
+VALUES ($1, $2, $3, $4)
 RETURNING *;
 
--- name: GetProfilesByUser :many
+-- name: GetProfileByUserID :one
 SELECT * FROM profiles
-WHERE user_id = $1
-ORDER BY created_at DESC;
+WHERE user_id = $1;
 
 -- name: GetProfileByID :one
 SELECT * FROM profiles
 WHERE id = $1;
 
--- name: SetDefaultProfile :exec
+-- name: UpdateProfile :one
 UPDATE profiles
-SET is_default = FALSE
-WHERE user_id = $1;
-
--- name: SetProfileAsDefault :exec
-UPDATE profiles
-SET is_default = TRUE
-WHERE id = $1;
+SET name = $2,
+    bio = $3,
+    avatar_url = $4,
+    updated_at = NOW()
+WHERE id = $1
+RETURNING *;
 
 -- name: DeleteProfile :exec
 DELETE FROM profiles
@@ -62,65 +58,22 @@ RETURNING *;
 SELECT * FROM profile_contacts
 WHERE profile_id = $1;
 
-
--- name: CreateCustomField :one
-INSERT INTO profile_custom_fields (
-    profile_id, key, value, type, position
-)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING *;
-
--- name: GetCustomFieldsByProfile :many
-SELECT * FROM profile_custom_fields
-WHERE profile_id = $1
-ORDER BY position ASC;
-
--- name: DeleteCustomField :exec
-DELETE FROM profile_custom_fields
-WHERE id = $1;
-
-
 -- name: CreateQRToken :one
-INSERT INTO qr_tokens (
-    profile_id, token, is_dynamic, expires_at
-)
-VALUES ($1, $2, $3, $4)
+INSERT INTO qr_tokens (profile_id, token, expires_at)
+VALUES ($1, $2, $3)
 RETURNING *;
-
--- name: GetProfileByToken :one
-SELECT p.*
-FROM qr_tokens q
-JOIN profiles p ON p.id = q.profile_id
-WHERE q.token = $1
-AND q.is_active = TRUE
-AND (q.expires_at IS NULL OR q.expires_at > NOW());
 
 -- name: DisableQRToken :exec
 UPDATE qr_tokens
 SET is_active = FALSE
 WHERE token = $1;
 
--- name: CreateScanLog :exec
-INSERT INTO scan_logs (
-    profile_id, device, location, ip_address
-)
-VALUES ($1, $2, $3, $4);
-
--- name: GetScanLogsByProfile :many
-SELECT * FROM scan_logs
-WHERE profile_id = $1
-ORDER BY scanned_at DESC
-LIMIT $2;
-
--- name: GetScanCount :one
-SELECT COUNT(*) FROM scan_logs
-WHERE profile_id = $1;
-
--- name: GetFullProfileByToken :one
+-- name: GetProfileByToken :one
 SELECT 
     p.id,
     p.name,
     p.bio,
+    p.avatar_url,
 
     pc.phone,
     pc.email,
