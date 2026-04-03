@@ -12,8 +12,8 @@ SELECT * FROM users
 WHERE id = $1;
 
 -- name: CreateProfile :one
-INSERT INTO profiles (user_id, name, bio, avatar_url)
-VALUES ($1, $2, $3, $4)
+INSERT INTO profiles (user_id, name, bio)
+VALUES ($1, $2, $3)
 RETURNING *;
 
 -- name: GetProfileByUserID :one
@@ -28,7 +28,6 @@ WHERE id = $1;
 UPDATE profiles
 SET name = $2,
     bio = $3,
-    avatar_url = $4,
     updated_at = NOW()
 WHERE id = $1
 RETURNING *;
@@ -73,7 +72,7 @@ SELECT
     p.id,
     p.name,
     p.bio,
-    p.avatar_url,
+    
 
     pc.phone,
     pc.email,

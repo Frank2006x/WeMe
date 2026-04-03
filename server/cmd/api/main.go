@@ -21,10 +21,13 @@ func main(){
 	dbPool:=db.NewPool()
 	dbPool.Ping(context.Background())
 	defer dbPool.Close()
-
 	queries:=dbgen.New(dbPool)
 	Handler := handler.NewHandler(queries)
+
 	router.SetupAuthRoutes(app,Handler)
+	router.SetupProfileRoutes(app,Handler)
+
+	
 	app.Get("/:name", func(c fiber.Ctx) error {
 		name := c.Params("name")
 		return c.SendString("Hello, " + name + "!")

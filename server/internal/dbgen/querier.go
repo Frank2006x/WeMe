@@ -11,27 +11,21 @@ import (
 )
 
 type Querier interface {
-	CreateCustomField(ctx context.Context, arg CreateCustomFieldParams) (ProfileCustomField, error)
 	CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error)
 	CreateQRToken(ctx context.Context, arg CreateQRTokenParams) (QrToken, error)
 	CreateScanLog(ctx context.Context, arg CreateScanLogParams) error
-	// query.sql
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	DeleteCustomField(ctx context.Context, id pgtype.UUID) error
 	DeleteProfile(ctx context.Context, id pgtype.UUID) error
 	DisableQRToken(ctx context.Context, token string) error
-	GetCustomFieldsByProfile(ctx context.Context, profileID pgtype.UUID) ([]ProfileCustomField, error)
-	GetFullProfileByToken(ctx context.Context, token string) (GetFullProfileByTokenRow, error)
 	GetProfileByID(ctx context.Context, id pgtype.UUID) (Profile, error)
-	GetProfileByToken(ctx context.Context, token string) (Profile, error)
+	GetProfileByToken(ctx context.Context, token string) (GetProfileByTokenRow, error)
+	GetProfileByUserID(ctx context.Context, userID pgtype.UUID) (Profile, error)
 	GetProfileContacts(ctx context.Context, profileID pgtype.UUID) (ProfileContact, error)
-	GetProfilesByUser(ctx context.Context, userID pgtype.UUID) ([]Profile, error)
 	GetScanCount(ctx context.Context, profileID pgtype.UUID) (int64, error)
 	GetScanLogsByProfile(ctx context.Context, arg GetScanLogsByProfileParams) ([]ScanLog, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
-	SetDefaultProfile(ctx context.Context, userID pgtype.UUID) error
-	SetProfileAsDefault(ctx context.Context, id pgtype.UUID) error
+	UpdateProfile(ctx context.Context, arg UpdateProfileParams) (Profile, error)
 	UpsertProfileContacts(ctx context.Context, arg UpsertProfileContactsParams) (ProfileContact, error)
 }
 

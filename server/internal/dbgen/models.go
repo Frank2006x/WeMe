@@ -13,8 +13,6 @@ type Profile struct {
 	UserID    pgtype.UUID      `json:"user_id"`
 	Name      string           `json:"name"`
 	Bio       pgtype.Text      `json:"bio"`
-	IsDefault pgtype.Bool      `json:"is_default"`
-	Extra     []byte           `json:"extra"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
@@ -32,20 +30,10 @@ type ProfileContact struct {
 	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }
 
-type ProfileCustomField struct {
-	ID        pgtype.UUID `json:"id"`
-	ProfileID pgtype.UUID `json:"profile_id"`
-	Key       string      `json:"key"`
-	Value     string      `json:"value"`
-	Type      pgtype.Text `json:"type"`
-	Position  pgtype.Int4 `json:"position"`
-}
-
 type QrToken struct {
 	ID        pgtype.UUID      `json:"id"`
 	ProfileID pgtype.UUID      `json:"profile_id"`
 	Token     string           `json:"token"`
-	IsDynamic pgtype.Bool      `json:"is_dynamic"`
 	IsActive  pgtype.Bool      `json:"is_active"`
 	ExpiresAt pgtype.Timestamp `json:"expires_at"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
