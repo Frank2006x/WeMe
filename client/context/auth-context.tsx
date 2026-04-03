@@ -1,7 +1,14 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  PropsWithChildren,
+} from "react";
 import * as SecureStore from "expo-secure-store";
 import { jwtDecode } from "jwt-decode";
-import api from "@/constants/api";
+import api from "../constants/api";
+import { useRouter, useSegments } from "expo-router";
 
 type AuthContextType = {
   isAuthenticated: boolean;
@@ -15,14 +22,33 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const TOKEN_KEY = "user_token";
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+function useProtectedRoute(isAuthenticated: boolean, isLoading: boolean) {
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return; // Don't redirect until auth state is confirmed
+
+    const inAuthGroup = segments[0] === "(auth)";
+
+    if (!isAuthenticated && !inAuthGroup) {
+      router.replace("/get-started");
+    } else if (isAuthenticated && inAuthGroup) {
+      router.replace("/(tabs)");
+    }
+  }, [isAuthenticated, isLoading, segments, router]);
+}
+
+export function AuthProvider({ children }: PropsWithChildren) {
+  const [isAuthenticated, setAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check for stored token on mount
-    checkAuth();
+    checkAuth().finally(() => setIsLoading(false));
   }, []);
+
+  useProtectedRoute(isAuthenticated, isLoading);
 
   const isTokenExpired = (token: string) => {
     try {
@@ -36,18 +62,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const checkAuth = async () => {
-    try {
-      const token = await SecureStore.getItemAsync(TOKEN_KEY);
-      if (token && !isTokenExpired(token)) {
-        setIsAuthenticated(true);
-      } else if (token) {
-        // Token exists but is expired
-        await logout();
-      }
-    } catch (e) {
-      console.error("Failed to check auth status:", e);
-    } finally {
-      setIsLoading(false);
+    const token = await SecureStore.getItemAsync(TOKEN_KEY);
+    if (token && !isTokenExpired(token)) {
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      setAuthenticated(true);
+    } else {
+      await SecureStore.deleteItemAsync(TOKEN_KEY); // Clean up expired token
+      setAuthenticated(false);
     }
   };
 
@@ -57,7 +78,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { token } = response.data;
 
       await SecureStore.setItemAsync(TOKEN_KEY, token);
-      setIsAuthenticated(true);
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      setAuthenticated(true);
     } catch (error) {
       console.error("Login error:", error);
       throw error;
@@ -76,12 +98,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    try {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-      setIsAuthenticated(false);
-    } catch (e) {
-      console.error("Failed to log out:", e);
-    }
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    delete api.defaults.headers.common["Authorization"];
+    setAuthenticated(false);
   };
 
   return (
