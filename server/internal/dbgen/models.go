@@ -8,9 +8,62 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Profile struct {
+	ID        pgtype.UUID      `json:"id"`
+	UserID    pgtype.UUID      `json:"user_id"`
+	Name      string           `json:"name"`
+	Bio       pgtype.Text      `json:"bio"`
+	IsDefault pgtype.Bool      `json:"is_default"`
+	Extra     []byte           `json:"extra"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
+type ProfileContact struct {
+	ProfileID pgtype.UUID      `json:"profile_id"`
+	Phone     pgtype.Text      `json:"phone"`
+	Email     pgtype.Text      `json:"email"`
+	Website   pgtype.Text      `json:"website"`
+	Linkedin  pgtype.Text      `json:"linkedin"`
+	Github    pgtype.Text      `json:"github"`
+	Twitter   pgtype.Text      `json:"twitter"`
+	Instagram pgtype.Text      `json:"instagram"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+}
+
+type ProfileCustomField struct {
+	ID        pgtype.UUID `json:"id"`
+	ProfileID pgtype.UUID `json:"profile_id"`
+	Key       string      `json:"key"`
+	Value     string      `json:"value"`
+	Type      pgtype.Text `json:"type"`
+	Position  pgtype.Int4 `json:"position"`
+}
+
+type QrToken struct {
+	ID        pgtype.UUID      `json:"id"`
+	ProfileID pgtype.UUID      `json:"profile_id"`
+	Token     string           `json:"token"`
+	IsDynamic pgtype.Bool      `json:"is_dynamic"`
+	IsActive  pgtype.Bool      `json:"is_active"`
+	ExpiresAt pgtype.Timestamp `json:"expires_at"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
+type ScanLog struct {
+	ID        pgtype.UUID      `json:"id"`
+	ProfileID pgtype.UUID      `json:"profile_id"`
+	ScannedAt pgtype.Timestamp `json:"scanned_at"`
+	Device    pgtype.Text      `json:"device"`
+	Location  pgtype.Text      `json:"location"`
+	IpAddress pgtype.Text      `json:"ip_address"`
+}
+
 type User struct {
 	ID        pgtype.UUID      `json:"id"`
 	Email     string           `json:"email"`
 	Password  string           `json:"password"`
 	CreatedAt pgtype.Timestamp `json:"created_at"`
+	UpdatedAt pgtype.Timestamp `json:"updated_at"`
 }

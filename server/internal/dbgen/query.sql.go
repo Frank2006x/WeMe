@@ -7,13 +7,144 @@ package dbgen
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const createCustomField = `-- name: CreateCustomField :one
+INSERT INTO profile_custom_fields (
+    profile_id, key, value, type, position
+)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, profile_id, key, value, type, position
+`
+
+type CreateCustomFieldParams struct {
+	ProfileID pgtype.UUID `json:"profile_id"`
+	Key       string      `json:"key"`
+	Value     string      `json:"value"`
+	Type      pgtype.Text `json:"type"`
+	Position  pgtype.Int4 `json:"position"`
+}
+
+func (q *Queries) CreateCustomField(ctx context.Context, arg CreateCustomFieldParams) (ProfileCustomField, error) {
+	row := q.db.QueryRow(ctx, createCustomField,
+		arg.ProfileID,
+		arg.Key,
+		arg.Value,
+		arg.Type,
+		arg.Position,
+	)
+	var i ProfileCustomField
+	err := row.Scan(
+		&i.ID,
+		&i.ProfileID,
+		&i.Key,
+		&i.Value,
+		&i.Type,
+		&i.Position,
+	)
+	return i, err
+}
+
+const createProfile = `-- name: CreateProfile :one
+INSERT INTO profiles (user_id, name, bio, is_default)
+VALUES ($1, $2, $3,$4)
+RETURNING id, user_id, name, bio, is_default, extra, created_at, updated_at
+`
+
+type CreateProfileParams struct {
+	UserID    pgtype.UUID `json:"user_id"`
+	Name      string      `json:"name"`
+	Bio       pgtype.Text `json:"bio"`
+	IsDefault pgtype.Bool `json:"is_default"`
+}
+
+func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error) {
+	row := q.db.QueryRow(ctx, createProfile,
+		arg.UserID,
+		arg.Name,
+		arg.Bio,
+		arg.IsDefault,
+	)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Bio,
+		&i.IsDefault,
+		&i.Extra,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const createQRToken = `-- name: CreateQRToken :one
+INSERT INTO qr_tokens (
+    profile_id, token, is_dynamic, expires_at
+)
+VALUES ($1, $2, $3, $4)
+RETURNING id, profile_id, token, is_dynamic, is_active, expires_at, created_at
+`
+
+type CreateQRTokenParams struct {
+	ProfileID pgtype.UUID      `json:"profile_id"`
+	Token     string           `json:"token"`
+	IsDynamic pgtype.Bool      `json:"is_dynamic"`
+	ExpiresAt pgtype.Timestamp `json:"expires_at"`
+}
+
+func (q *Queries) CreateQRToken(ctx context.Context, arg CreateQRTokenParams) (QrToken, error) {
+	row := q.db.QueryRow(ctx, createQRToken,
+		arg.ProfileID,
+		arg.Token,
+		arg.IsDynamic,
+		arg.ExpiresAt,
+	)
+	var i QrToken
+	err := row.Scan(
+		&i.ID,
+		&i.ProfileID,
+		&i.Token,
+		&i.IsDynamic,
+		&i.IsActive,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createScanLog = `-- name: CreateScanLog :exec
+INSERT INTO scan_logs (
+    profile_id, device, location, ip_address
+)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateScanLogParams struct {
+	ProfileID pgtype.UUID `json:"profile_id"`
+	Device    pgtype.Text `json:"device"`
+	Location  pgtype.Text `json:"location"`
+	IpAddress pgtype.Text `json:"ip_address"`
+}
+
+func (q *Queries) CreateScanLog(ctx context.Context, arg CreateScanLogParams) error {
+	_, err := q.db.Exec(ctx, createScanLog,
+		arg.ProfileID,
+		arg.Device,
+		arg.Location,
+		arg.IpAddress,
+	)
+	return err
+}
 
 const createUser = `-- name: CreateUser :one
 
 INSERT INTO users (email, password)
 VALUES ($1, $2)
-RETURNING id, email, password, created_at
+RETURNING id, email, password, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -30,12 +161,286 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Email,
 		&i.Password,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
+const deleteCustomField = `-- name: DeleteCustomField :exec
+DELETE FROM profile_custom_fields
+WHERE id = $1
+`
+
+func (q *Queries) DeleteCustomField(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteCustomField, id)
+	return err
+}
+
+const deleteProfile = `-- name: DeleteProfile :exec
+DELETE FROM profiles
+WHERE id = $1
+`
+
+func (q *Queries) DeleteProfile(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, deleteProfile, id)
+	return err
+}
+
+const disableQRToken = `-- name: DisableQRToken :exec
+UPDATE qr_tokens
+SET is_active = FALSE
+WHERE token = $1
+`
+
+func (q *Queries) DisableQRToken(ctx context.Context, token string) error {
+	_, err := q.db.Exec(ctx, disableQRToken, token)
+	return err
+}
+
+const getCustomFieldsByProfile = `-- name: GetCustomFieldsByProfile :many
+SELECT id, profile_id, key, value, type, position FROM profile_custom_fields
+WHERE profile_id = $1
+ORDER BY position ASC
+`
+
+func (q *Queries) GetCustomFieldsByProfile(ctx context.Context, profileID pgtype.UUID) ([]ProfileCustomField, error) {
+	rows, err := q.db.Query(ctx, getCustomFieldsByProfile, profileID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProfileCustomField
+	for rows.Next() {
+		var i ProfileCustomField
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProfileID,
+			&i.Key,
+			&i.Value,
+			&i.Type,
+			&i.Position,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getFullProfileByToken = `-- name: GetFullProfileByToken :one
+SELECT 
+    p.id,
+    p.name,
+    p.bio,
+
+    pc.phone,
+    pc.email,
+    pc.website,
+    pc.linkedin,
+    pc.github,
+    pc.twitter,
+    pc.instagram
+
+FROM qr_tokens q
+JOIN profiles p ON p.id = q.profile_id
+LEFT JOIN profile_contacts pc ON pc.profile_id = p.id
+
+WHERE q.token = $1
+AND q.is_active = TRUE
+AND (q.expires_at IS NULL OR q.expires_at > NOW())
+`
+
+type GetFullProfileByTokenRow struct {
+	ID        pgtype.UUID `json:"id"`
+	Name      string      `json:"name"`
+	Bio       pgtype.Text `json:"bio"`
+	Phone     pgtype.Text `json:"phone"`
+	Email     pgtype.Text `json:"email"`
+	Website   pgtype.Text `json:"website"`
+	Linkedin  pgtype.Text `json:"linkedin"`
+	Github    pgtype.Text `json:"github"`
+	Twitter   pgtype.Text `json:"twitter"`
+	Instagram pgtype.Text `json:"instagram"`
+}
+
+func (q *Queries) GetFullProfileByToken(ctx context.Context, token string) (GetFullProfileByTokenRow, error) {
+	row := q.db.QueryRow(ctx, getFullProfileByToken, token)
+	var i GetFullProfileByTokenRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Bio,
+		&i.Phone,
+		&i.Email,
+		&i.Website,
+		&i.Linkedin,
+		&i.Github,
+		&i.Twitter,
+		&i.Instagram,
+	)
+	return i, err
+}
+
+const getProfileByID = `-- name: GetProfileByID :one
+SELECT id, user_id, name, bio, is_default, extra, created_at, updated_at FROM profiles
+WHERE id = $1
+`
+
+func (q *Queries) GetProfileByID(ctx context.Context, id pgtype.UUID) (Profile, error) {
+	row := q.db.QueryRow(ctx, getProfileByID, id)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Bio,
+		&i.IsDefault,
+		&i.Extra,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getProfileByToken = `-- name: GetProfileByToken :one
+SELECT p.id, p.user_id, p.name, p.bio, p.is_default, p.extra, p.created_at, p.updated_at
+FROM qr_tokens q
+JOIN profiles p ON p.id = q.profile_id
+WHERE q.token = $1
+AND q.is_active = TRUE
+AND (q.expires_at IS NULL OR q.expires_at > NOW())
+`
+
+func (q *Queries) GetProfileByToken(ctx context.Context, token string) (Profile, error) {
+	row := q.db.QueryRow(ctx, getProfileByToken, token)
+	var i Profile
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Bio,
+		&i.IsDefault,
+		&i.Extra,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getProfileContacts = `-- name: GetProfileContacts :one
+SELECT profile_id, phone, email, website, linkedin, github, twitter, instagram, created_at, updated_at FROM profile_contacts
+WHERE profile_id = $1
+`
+
+func (q *Queries) GetProfileContacts(ctx context.Context, profileID pgtype.UUID) (ProfileContact, error) {
+	row := q.db.QueryRow(ctx, getProfileContacts, profileID)
+	var i ProfileContact
+	err := row.Scan(
+		&i.ProfileID,
+		&i.Phone,
+		&i.Email,
+		&i.Website,
+		&i.Linkedin,
+		&i.Github,
+		&i.Twitter,
+		&i.Instagram,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getProfilesByUser = `-- name: GetProfilesByUser :many
+SELECT id, user_id, name, bio, is_default, extra, created_at, updated_at FROM profiles
+WHERE user_id = $1
+ORDER BY created_at DESC
+`
+
+func (q *Queries) GetProfilesByUser(ctx context.Context, userID pgtype.UUID) ([]Profile, error) {
+	rows, err := q.db.Query(ctx, getProfilesByUser, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Profile
+	for rows.Next() {
+		var i Profile
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Name,
+			&i.Bio,
+			&i.IsDefault,
+			&i.Extra,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getScanCount = `-- name: GetScanCount :one
+SELECT COUNT(*) FROM scan_logs
+WHERE profile_id = $1
+`
+
+func (q *Queries) GetScanCount(ctx context.Context, profileID pgtype.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, getScanCount, profileID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getScanLogsByProfile = `-- name: GetScanLogsByProfile :many
+SELECT id, profile_id, scanned_at, device, location, ip_address FROM scan_logs
+WHERE profile_id = $1
+ORDER BY scanned_at DESC
+LIMIT $2
+`
+
+type GetScanLogsByProfileParams struct {
+	ProfileID pgtype.UUID `json:"profile_id"`
+	Limit     int32       `json:"limit"`
+}
+
+func (q *Queries) GetScanLogsByProfile(ctx context.Context, arg GetScanLogsByProfileParams) ([]ScanLog, error) {
+	rows, err := q.db.Query(ctx, getScanLogsByProfile, arg.ProfileID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ScanLog
+	for rows.Next() {
+		var i ScanLog
+		if err := rows.Scan(
+			&i.ID,
+			&i.ProfileID,
+			&i.ScannedAt,
+			&i.Device,
+			&i.Location,
+			&i.IpAddress,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password, created_at FROM users
+SELECT id, email, password, created_at, updated_at FROM users
 WHERE email = $1
 `
 
@@ -47,6 +452,103 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Email,
 		&i.Password,
 		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT id, email, password, created_at, updated_at FROM users
+WHERE id = $1
+`
+
+func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Password,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const setDefaultProfile = `-- name: SetDefaultProfile :exec
+UPDATE profiles
+SET is_default = FALSE
+WHERE user_id = $1
+`
+
+func (q *Queries) SetDefaultProfile(ctx context.Context, userID pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, setDefaultProfile, userID)
+	return err
+}
+
+const setProfileAsDefault = `-- name: SetProfileAsDefault :exec
+UPDATE profiles
+SET is_default = TRUE
+WHERE id = $1
+`
+
+func (q *Queries) SetProfileAsDefault(ctx context.Context, id pgtype.UUID) error {
+	_, err := q.db.Exec(ctx, setProfileAsDefault, id)
+	return err
+}
+
+const upsertProfileContacts = `-- name: UpsertProfileContacts :one
+INSERT INTO profile_contacts (
+    profile_id, phone, email, website,
+    linkedin, github, twitter, instagram
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+ON CONFLICT (profile_id) DO UPDATE SET
+    phone = EXCLUDED.phone,
+    email = EXCLUDED.email,
+    website = EXCLUDED.website,
+    linkedin = EXCLUDED.linkedin,
+    github = EXCLUDED.github,
+    twitter = EXCLUDED.twitter,
+    instagram = EXCLUDED.instagram,
+    updated_at = NOW()
+RETURNING profile_id, phone, email, website, linkedin, github, twitter, instagram, created_at, updated_at
+`
+
+type UpsertProfileContactsParams struct {
+	ProfileID pgtype.UUID `json:"profile_id"`
+	Phone     pgtype.Text `json:"phone"`
+	Email     pgtype.Text `json:"email"`
+	Website   pgtype.Text `json:"website"`
+	Linkedin  pgtype.Text `json:"linkedin"`
+	Github    pgtype.Text `json:"github"`
+	Twitter   pgtype.Text `json:"twitter"`
+	Instagram pgtype.Text `json:"instagram"`
+}
+
+func (q *Queries) UpsertProfileContacts(ctx context.Context, arg UpsertProfileContactsParams) (ProfileContact, error) {
+	row := q.db.QueryRow(ctx, upsertProfileContacts,
+		arg.ProfileID,
+		arg.Phone,
+		arg.Email,
+		arg.Website,
+		arg.Linkedin,
+		arg.Github,
+		arg.Twitter,
+		arg.Instagram,
+	)
+	var i ProfileContact
+	err := row.Scan(
+		&i.ProfileID,
+		&i.Phone,
+		&i.Email,
+		&i.Website,
+		&i.Linkedin,
+		&i.Github,
+		&i.Twitter,
+		&i.Instagram,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
