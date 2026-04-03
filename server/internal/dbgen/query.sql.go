@@ -12,25 +12,54 @@ import (
 )
 
 const createProfile = `-- name: CreateProfile :one
-INSERT INTO profiles (user_id, name, bio)
-VALUES ($1, $2, $3)
-RETURNING id, user_id, name, bio, created_at, updated_at
+INSERT INTO profiles (
+    user_id, name, bio,
+    phone, email, website,
+    linkedin, github, twitter, instagram
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+RETURNING id, user_id, name, bio, phone, email, website, linkedin, github, twitter, instagram, created_at, updated_at
 `
 
 type CreateProfileParams struct {
-	UserID pgtype.UUID `json:"user_id"`
-	Name   string      `json:"name"`
-	Bio    pgtype.Text `json:"bio"`
+	UserID    pgtype.UUID `json:"user_id"`
+	Name      string      `json:"name"`
+	Bio       pgtype.Text `json:"bio"`
+	Phone     pgtype.Text `json:"phone"`
+	Email     pgtype.Text `json:"email"`
+	Website   pgtype.Text `json:"website"`
+	Linkedin  pgtype.Text `json:"linkedin"`
+	Github    pgtype.Text `json:"github"`
+	Twitter   pgtype.Text `json:"twitter"`
+	Instagram pgtype.Text `json:"instagram"`
 }
 
 func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error) {
-	row := q.db.QueryRow(ctx, createProfile, arg.UserID, arg.Name, arg.Bio)
+	row := q.db.QueryRow(ctx, createProfile,
+		arg.UserID,
+		arg.Name,
+		arg.Bio,
+		arg.Phone,
+		arg.Email,
+		arg.Website,
+		arg.Linkedin,
+		arg.Github,
+		arg.Twitter,
+		arg.Instagram,
+	)
 	var i Profile
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Name,
 		&i.Bio,
+		&i.Phone,
+		&i.Email,
+		&i.Website,
+		&i.Linkedin,
+		&i.Github,
+		&i.Twitter,
+		&i.Instagram,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -111,16 +140,6 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
-const deleteProfile = `-- name: DeleteProfile :exec
-DELETE FROM profiles
-WHERE id = $1
-`
-
-func (q *Queries) DeleteProfile(ctx context.Context, id pgtype.UUID) error {
-	_, err := q.db.Exec(ctx, deleteProfile, id)
-	return err
-}
-
 const disableQRToken = `-- name: DisableQRToken :exec
 UPDATE qr_tokens
 SET is_active = FALSE
@@ -132,67 +151,21 @@ func (q *Queries) DisableQRToken(ctx context.Context, token string) error {
 	return err
 }
 
-const getProfileByID = `-- name: GetProfileByID :one
-SELECT id, user_id, name, bio, created_at, updated_at FROM profiles
-WHERE id = $1
-`
-
-func (q *Queries) GetProfileByID(ctx context.Context, id pgtype.UUID) (Profile, error) {
-	row := q.db.QueryRow(ctx, getProfileByID, id)
-	var i Profile
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Name,
-		&i.Bio,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getProfileByToken = `-- name: GetProfileByToken :one
-SELECT 
-    p.id,
-    p.name,
-    p.bio,
-    
-
-    pc.phone,
-    pc.email,
-    pc.website,
-    pc.linkedin,
-    pc.github,
-    pc.twitter,
-    pc.instagram
-
+SELECT p.id, p.user_id, p.name, p.bio, p.phone, p.email, p.website, p.linkedin, p.github, p.twitter, p.instagram, p.created_at, p.updated_at
 FROM qr_tokens q
 JOIN profiles p ON p.id = q.profile_id
-LEFT JOIN profile_contacts pc ON pc.profile_id = p.id
-
 WHERE q.token = $1
 AND q.is_active = TRUE
 AND (q.expires_at IS NULL OR q.expires_at > NOW())
 `
 
-type GetProfileByTokenRow struct {
-	ID        pgtype.UUID `json:"id"`
-	Name      string      `json:"name"`
-	Bio       pgtype.Text `json:"bio"`
-	Phone     pgtype.Text `json:"phone"`
-	Email     pgtype.Text `json:"email"`
-	Website   pgtype.Text `json:"website"`
-	Linkedin  pgtype.Text `json:"linkedin"`
-	Github    pgtype.Text `json:"github"`
-	Twitter   pgtype.Text `json:"twitter"`
-	Instagram pgtype.Text `json:"instagram"`
-}
-
-func (q *Queries) GetProfileByToken(ctx context.Context, token string) (GetProfileByTokenRow, error) {
+func (q *Queries) GetProfileByToken(ctx context.Context, token string) (Profile, error) {
 	row := q.db.QueryRow(ctx, getProfileByToken, token)
-	var i GetProfileByTokenRow
+	var i Profile
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.Name,
 		&i.Bio,
 		&i.Phone,
@@ -202,12 +175,14 @@ func (q *Queries) GetProfileByToken(ctx context.Context, token string) (GetProfi
 		&i.Github,
 		&i.Twitter,
 		&i.Instagram,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getProfileByUserID = `-- name: GetProfileByUserID :one
-SELECT id, user_id, name, bio, created_at, updated_at FROM profiles
+SELECT id, user_id, name, bio, phone, email, website, linkedin, github, twitter, instagram, created_at, updated_at FROM profiles
 WHERE user_id = $1
 `
 
@@ -219,22 +194,6 @@ func (q *Queries) GetProfileByUserID(ctx context.Context, userID pgtype.UUID) (P
 		&i.UserID,
 		&i.Name,
 		&i.Bio,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const getProfileContacts = `-- name: GetProfileContacts :one
-SELECT profile_id, phone, email, website, linkedin, github, twitter, instagram, created_at, updated_at FROM profile_contacts
-WHERE profile_id = $1
-`
-
-func (q *Queries) GetProfileContacts(ctx context.Context, profileID pgtype.UUID) (ProfileContact, error) {
-	row := q.db.QueryRow(ctx, getProfileContacts, profileID)
-	var i ProfileContact
-	err := row.Scan(
-		&i.ProfileID,
 		&i.Phone,
 		&i.Email,
 		&i.Website,
@@ -260,45 +219,6 @@ func (q *Queries) GetScanCount(ctx context.Context, profileID pgtype.UUID) (int6
 	return count, err
 }
 
-const getScanLogsByProfile = `-- name: GetScanLogsByProfile :many
-SELECT id, profile_id, scanned_at, device, location, ip_address FROM scan_logs
-WHERE profile_id = $1
-ORDER BY scanned_at DESC
-LIMIT $2
-`
-
-type GetScanLogsByProfileParams struct {
-	ProfileID pgtype.UUID `json:"profile_id"`
-	Limit     int32       `json:"limit"`
-}
-
-func (q *Queries) GetScanLogsByProfile(ctx context.Context, arg GetScanLogsByProfileParams) ([]ScanLog, error) {
-	rows, err := q.db.Query(ctx, getScanLogsByProfile, arg.ProfileID, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []ScanLog
-	for rows.Next() {
-		var i ScanLog
-		if err := rows.Scan(
-			&i.ID,
-			&i.ProfileID,
-			&i.ScannedAt,
-			&i.Device,
-			&i.Location,
-			&i.IpAddress,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, email, password, created_at, updated_at FROM users
 WHERE email = $1
@@ -317,73 +237,26 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	return i, err
 }
 
-const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, password, created_at, updated_at FROM users
-WHERE id = $1
-`
-
-func (q *Queries) GetUserByID(ctx context.Context, id pgtype.UUID) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByID, id)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Email,
-		&i.Password,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const updateProfile = `-- name: UpdateProfile :one
 UPDATE profiles
 SET name = $2,
     bio = $3,
+    phone = $4,
+    email = $5,
+    website = $6,
+    linkedin = $7,
+    github = $8,
+    twitter = $9,
+    instagram = $10,
     updated_at = NOW()
 WHERE id = $1
-RETURNING id, user_id, name, bio, created_at, updated_at
+RETURNING id, user_id, name, bio, phone, email, website, linkedin, github, twitter, instagram, created_at, updated_at
 `
 
 type UpdateProfileParams struct {
-	ID   pgtype.UUID `json:"id"`
-	Name string      `json:"name"`
-	Bio  pgtype.Text `json:"bio"`
-}
-
-func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) (Profile, error) {
-	row := q.db.QueryRow(ctx, updateProfile, arg.ID, arg.Name, arg.Bio)
-	var i Profile
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Name,
-		&i.Bio,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const upsertProfileContacts = `-- name: UpsertProfileContacts :one
-INSERT INTO profile_contacts (
-    profile_id, phone, email, website,
-    linkedin, github, twitter, instagram
-)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-ON CONFLICT (profile_id) DO UPDATE SET
-    phone = EXCLUDED.phone,
-    email = EXCLUDED.email,
-    website = EXCLUDED.website,
-    linkedin = EXCLUDED.linkedin,
-    github = EXCLUDED.github,
-    twitter = EXCLUDED.twitter,
-    instagram = EXCLUDED.instagram,
-    updated_at = NOW()
-RETURNING profile_id, phone, email, website, linkedin, github, twitter, instagram, created_at, updated_at
-`
-
-type UpsertProfileContactsParams struct {
-	ProfileID pgtype.UUID `json:"profile_id"`
+	ID        pgtype.UUID `json:"id"`
+	Name      string      `json:"name"`
+	Bio       pgtype.Text `json:"bio"`
 	Phone     pgtype.Text `json:"phone"`
 	Email     pgtype.Text `json:"email"`
 	Website   pgtype.Text `json:"website"`
@@ -393,9 +266,11 @@ type UpsertProfileContactsParams struct {
 	Instagram pgtype.Text `json:"instagram"`
 }
 
-func (q *Queries) UpsertProfileContacts(ctx context.Context, arg UpsertProfileContactsParams) (ProfileContact, error) {
-	row := q.db.QueryRow(ctx, upsertProfileContacts,
-		arg.ProfileID,
+func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) (Profile, error) {
+	row := q.db.QueryRow(ctx, updateProfile,
+		arg.ID,
+		arg.Name,
+		arg.Bio,
 		arg.Phone,
 		arg.Email,
 		arg.Website,
@@ -404,9 +279,12 @@ func (q *Queries) UpsertProfileContacts(ctx context.Context, arg UpsertProfileCo
 		arg.Twitter,
 		arg.Instagram,
 	)
-	var i ProfileContact
+	var i Profile
 	err := row.Scan(
-		&i.ProfileID,
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.Bio,
 		&i.Phone,
 		&i.Email,
 		&i.Website,

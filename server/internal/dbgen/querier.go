@@ -15,18 +15,12 @@ type Querier interface {
 	CreateQRToken(ctx context.Context, arg CreateQRTokenParams) (QrToken, error)
 	CreateScanLog(ctx context.Context, arg CreateScanLogParams) error
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	DeleteProfile(ctx context.Context, id pgtype.UUID) error
 	DisableQRToken(ctx context.Context, token string) error
-	GetProfileByID(ctx context.Context, id pgtype.UUID) (Profile, error)
-	GetProfileByToken(ctx context.Context, token string) (GetProfileByTokenRow, error)
+	GetProfileByToken(ctx context.Context, token string) (Profile, error)
 	GetProfileByUserID(ctx context.Context, userID pgtype.UUID) (Profile, error)
-	GetProfileContacts(ctx context.Context, profileID pgtype.UUID) (ProfileContact, error)
 	GetScanCount(ctx context.Context, profileID pgtype.UUID) (int64, error)
-	GetScanLogsByProfile(ctx context.Context, arg GetScanLogsByProfileParams) ([]ScanLog, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
-	GetUserByID(ctx context.Context, id pgtype.UUID) (User, error)
 	UpdateProfile(ctx context.Context, arg UpdateProfileParams) (Profile, error)
-	UpsertProfileContacts(ctx context.Context, arg UpsertProfileContactsParams) (ProfileContact, error)
 }
 
 var _ Querier = (*Queries)(nil)

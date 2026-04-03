@@ -12,7 +12,6 @@ CREATE TABLE users (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
-
 CREATE TABLE profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
@@ -21,18 +20,7 @@ CREATE TABLE profiles (
     name TEXT NOT NULL,
     bio TEXT,
 
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-
--- enforce single profile per user (for now)
-CREATE UNIQUE INDEX one_profile_per_user
-ON profiles(user_id);
-
-
-CREATE TABLE profile_contacts (
-    profile_id UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
-
+  
     phone TEXT,
     email TEXT,
     website TEXT,
@@ -45,6 +33,10 @@ CREATE TABLE profile_contacts (
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
+
+
+CREATE UNIQUE INDEX one_profile_per_user
+ON profiles(user_id);
 
 
 CREATE TABLE qr_tokens (
@@ -60,6 +52,7 @@ CREATE TABLE qr_tokens (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+
 CREATE TABLE scan_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
@@ -71,6 +64,7 @@ CREATE TABLE scan_logs (
     location TEXT,
     ip_address TEXT
 );
+
 
 CREATE INDEX idx_profiles_user_id 
 ON profiles(user_id);

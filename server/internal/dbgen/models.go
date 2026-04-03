@@ -13,12 +13,6 @@ type Profile struct {
 	UserID    pgtype.UUID      `json:"user_id"`
 	Name      string           `json:"name"`
 	Bio       pgtype.Text      `json:"bio"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
-}
-
-type ProfileContact struct {
-	ProfileID pgtype.UUID      `json:"profile_id"`
 	Phone     pgtype.Text      `json:"phone"`
 	Email     pgtype.Text      `json:"email"`
 	Website   pgtype.Text      `json:"website"`
